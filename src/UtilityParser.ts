@@ -1,5 +1,11 @@
 import type { TwConfig } from './tw-config';
-import type { StyleIR, DeviceContext, ParseContext, Platform } from './types';
+import type {
+  StyleIR,
+  DeviceContext,
+  ParseContext,
+  Platform,
+  MatchVariants,
+} from './types';
 import type Cache from './cache';
 import fontSize from './resolve/font-size';
 import lineHeight from './resolve/line-height';
@@ -34,6 +40,7 @@ export default class UtilityParser {
     private cache: Cache,
     device: DeviceContext,
     platform: Platform,
+    variants: MatchVariants,
   ) {
     this.context.device = device;
     const parts = input.trim().split(`:`);
@@ -45,7 +52,7 @@ export default class UtilityParser {
       prefixes = parts;
     }
     this.char = this.string[0];
-    this.parsePrefixes(prefixes, device, platform);
+    this.parsePrefixes(prefixes, device, platform, variants);
   }
 
   public parse(): StyleIR {
@@ -369,6 +376,16 @@ export default class UtilityParser {
     return true;
   }
 
+  private handleMatchVariant(prefix: string, variants: MatchVariants): boolean {
+    const variant = variants[prefix];
+    if (variant?.(prefix)) {
+      this.incrementOrder();
+    } else {
+      this.isNull = true;
+    }
+    return true;
+  }
+
   private advance(amount = 1): void {
     this.position += amount;
     this.char = this.string[this.position];
@@ -394,6 +411,7 @@ export default class UtilityParser {
     prefixes: string[],
     device: DeviceContext,
     platform: Platform,
+    variants: MatchVariants,
   ): void {
     const widthBreakpoints = screens(this.config.theme?.screens);
 
@@ -442,7 +460,10 @@ export default class UtilityParser {
         } else {
           this.incrementOrder();
         }
-      } else if (!this.handlePossibleArbitraryBreakpointPrefix(prefix)) {
+      } else if (
+        !this.handlePossibleArbitraryBreakpointPrefix(prefix) &&
+        !this.handleMatchVariant(prefix, variants)
+      ) {
         this.isNull = true;
       }
     }

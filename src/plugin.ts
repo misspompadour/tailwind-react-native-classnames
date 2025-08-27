@@ -1,5 +1,10 @@
 import type { TwConfig } from './tw-config';
-import type { AddedUtilities, CreatePlugin, PluginFunction } from './types';
+import type {
+  MatchVariants,
+  AddedUtilities,
+  CreatePlugin,
+  PluginFunction,
+} from './types';
 
 const plugin: CreatePlugin = (handler) => {
   return { handler, config: undefined };
@@ -7,24 +12,40 @@ const plugin: CreatePlugin = (handler) => {
 
 export default plugin;
 
-export function getAddedUtilities(plugins: TwConfig['plugins']): AddedUtilities {
+export function getPluginFunctions(plugins: TwConfig['plugins']): {
+  utilities: AddedUtilities;
+  variants: MatchVariants;
+} {
   return (
-    plugins?.reduce<AddedUtilities>(
-      (utils, plugin) => ({ ...utils, ...callPluginFunction(plugin.handler) }),
-      {},
-    ) ?? {}
+    plugins?.reduce<{ utilities: AddedUtilities; variants: MatchVariants }>(
+      (acc, plugin) => {
+        const { utilities, variants } = callPluginFunction(plugin.handler);
+        return {
+          utilities: { ...acc.utilities, ...utilities },
+          variants: { ...acc.variants, ...variants },
+        };
+      },
+      { utilities: {}, variants: {} },
+    ) ?? { utilities: {}, variants: {} }
   );
 }
 
-function callPluginFunction(pluginFn: PluginFunction): AddedUtilities {
-  let added: AddedUtilities = {};
+function callPluginFunction(pluginFn: PluginFunction): {
+  utilities: AddedUtilities;
+  variants: MatchVariants;
+} {
+  let addedUtilities: AddedUtilities = {};
+  let addedMatchVariants: MatchVariants = {};
   pluginFn({
     addUtilities: (utilities) => {
-      added = utilities;
+      addedUtilities = utilities;
+    },
+    matchVariant: (variants) => {
+      addedMatchVariants = variants;
     },
     ...core,
   });
-  return added;
+  return { utilities: addedUtilities, variants: addedMatchVariants };
 }
 
 function notImplemented(fn: string): never {

@@ -16,15 +16,15 @@ import UtilityParser from './UtilityParser';
 import { configColor, removeOpacityHelpers } from './resolve/color';
 import { parseInputs } from './parse-inputs';
 import { complete, warn } from './helpers';
-import { getAddedUtilities } from './plugin';
+import { getPluginFunctions } from './plugin';
 
 export function create(customConfig: TwConfig, platform: Platform): TailwindFn {
   const config = resolveConfig(withContent(customConfig) as any) as TwConfig;
   const device: DeviceContext = {};
 
-  const pluginUtils = getAddedUtilities(config.plugins);
+  const { utilities, variants } = getPluginFunctions(config.plugins);
   const customStringUtils: Record<string, string> = {};
-  const customStyleUtils = Object.entries(pluginUtils)
+  const customStyleUtils = Object.entries(utilities)
     .map(([rawUtil, style]): [string, StyleIR] => {
       const util = rawUtil.replace(/^\./, ``);
       if (typeof style === `string`) {
@@ -100,7 +100,14 @@ export function create(customConfig: TwConfig, platform: Platform): TailwindFn {
     for (const utility of utilities) {
       let styleIr = cache.getIr(utility);
       if (!styleIr) {
-        const parser = new UtilityParser(utility, config, cache, device, platform);
+        const parser = new UtilityParser(
+          utility,
+          config,
+          cache,
+          device,
+          platform,
+          variants,
+        );
         styleIr = parser.parse();
       }
 
@@ -184,7 +191,14 @@ export function create(customConfig: TwConfig, platform: Platform): TailwindFn {
     if (cached !== undefined) {
       return cached;
     }
-    const parser = new UtilityParser(`${joined}:flex`, config, cache, device, platform);
+    const parser = new UtilityParser(
+      `${joined}:flex`,
+      config,
+      cache,
+      device,
+      platform,
+      variants,
+    );
     const ir = parser.parse();
     const prefixMatches = ir.kind !== `null`;
     cache.setPrefixMatch(joined, prefixMatches);

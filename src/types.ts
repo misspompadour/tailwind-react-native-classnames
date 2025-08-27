@@ -158,9 +158,11 @@ export enum Unit {
 type NotImplemented = (...args: any) => unknown;
 
 export type AddedUtilities = Record<string, Style | string>;
+export type MatchVariants = Record<string, (variant: string) => boolean>;
 
 export type PluginFunction = (obj: {
   addUtilities(utilities: AddedUtilities): unknown;
+  matchVariant(variants: MatchVariants): unknown;
 
   /**
    * @deprecated not supported in @jaredh159/twrnc
